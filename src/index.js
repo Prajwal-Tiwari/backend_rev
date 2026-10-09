@@ -4,7 +4,15 @@ import mongoose from "mongoose";
 import { DB_NAME } from "./constants.js";
 import connDB from "./db/db.js";
 
-connDB();
+connDB()
+.then(()=>{
+    app.listen(process.env.PORT || 8000, ()=>{
+        console.log(`Server Running.. AT ${process.env.PORT}`);
+    })
+})
+.catch((err)=>{
+    console.log("Monogo DB connection failed !!!", err);
+})
 
 
 
