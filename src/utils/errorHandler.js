@@ -3,7 +3,7 @@
         statusCode,
         message= "Something went wrong",
         errors=[],
-        statck=""
+        stack=""
     ){
         super(message)
         this.statusCode = statusCode
@@ -13,7 +13,7 @@
         this.message = message
 
 
-        if(statck) {
+        if(stack) {
             this.stack = stack
         } else{
             Error.captureStacktrace(this, this.constructor)
