@@ -26,4 +26,4 @@ router.route("/login").post(loginUser);
 router.route("/logout").post(verifyJWT, logoutUser);
 router.route("/access-token-generating").post(tokenHandler);
 
-export default router
+export default router;
