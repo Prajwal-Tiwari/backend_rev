@@ -144,6 +144,12 @@ const loginUser = asyncHandler(async(req, res) => {
 
 })
 
+const getCurrentUser = asyncHandler(async(req, res) => {
+    return res
+            .status(200)
+            .json(200, req.user, "Current User fetched successfully")
+})
+
 const logoutUser = asyncHandler(async(req,res) => {
     await User.findByIdAndUpdate(
         req.user._id,
@@ -187,8 +193,9 @@ const tokenHandler = asyncHandler(async(req, res)=>{
         throw new APIerror(401, "Refresh Token is expired or used")
     }
 
-    const {accessToken, newRefreshToken} = await generateTokens(user._id);
-
+    const {accessToken, refreshToken} = await generateTokens(user._id);
+    console.log("access token: ", accessToken);
+    console.log("refresh token: ", refreshToken);
     const options = {
         httpOnly: true,
         secure: true
@@ -197,12 +204,12 @@ const tokenHandler = asyncHandler(async(req, res)=>{
     return res
             .status(200)
             .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", newRefreshToken, options)
+            .cookie("refreshToken", refreshToken, options)
             .json(
                 new APIresponse(
                     200,
-                    {accessToken, refreshToken: newRefreshToken},
-                    "Access Token refreshed"
+                    {accessToken, refreshToken: refreshToken},
+                    "Token refreshed"
                 )
             );
     } catch(error){
@@ -211,9 +218,103 @@ const tokenHandler = asyncHandler(async(req, res)=>{
     
 })
 
+const changePassword = asyncHandler(async(req, res)=>{
+    const {oldPassword, newPassword} = req.body;
+
+    const user = await User.findById(req.user?._id);
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+    if(!isPassword){
+        throw new APIerror(400, "Invalid Old Password")
+    }
+
+    user.password = newPassword;
+    await user.save(({validateBeforeSave: false}));
+
+    return res
+            .status(200)
+            .json(
+                new APIresponse(200, {}, "Password Changed Successfully")
+            )
+})
+
+const updateUserDetails = asyncHandler(async(req, res) => {
+    const {fullName, email} = req.body;
+    if(!fullName && !email){
+        throw new APIerror(400, "Empty field")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullName,
+                email
+            }
+        },
+        {new: true}
+    ).select("-password -refreshToken");
+
+    return res
+            .status(200)
+            .json(new APIresponse(200, user, "User Detail updated Successfully"));
+})
+
+const updateUserAvatar = asyncHandler(async(req, res) => {
+    const avatarLocalPath = req.file?.path
+
+    if(!avatarLocalPath){
+        throw new APIerror(400, "Avatar file is missing")
+    }
+
+    const avatar = await uploadCloudinary(avatarLocalPath);
+
+    if(!avatar.url){
+        throw new APIerror(400, "Error while Uploading Avatar on Cloudinary... ")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {$set: {avatar: avatar.url}},
+        {new: true}
+    ).select("-password -refreshToken");
+
+    return res
+            .status(200)
+            .json(200, user, "User Avatar updated");
+})
+
+const updateUserCoverImage = asyncHandler(async(req, res) => {
+    const coverImageLocalPath = req.file?.path
+
+    if(!coverImageLocalPath){
+        throw new APIerror(400, "Cover Image file is missing")
+    }
+
+    const coverImage = await uploadCloudinary(coverImageLocalPath);
+
+    if(!coverImage.url){
+        throw new APIerror(400, "Error while Uploading Cover Image on Cloudinary... ")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {$set: {coverImage: coverImage.url}},
+        {new: true}
+    ).select("-password -refreshToken");
+
+    return res
+            .status(200)
+            .json(200, user, "User Cover Image updated");
+})
+
 export { 
     registerUser,
     loginUser,
+    getCurrentUser,
     logoutUser,
-    tokenHandler
+    tokenHandler,
+    changePassword,
+    updateUserDetails,
+    updateUserAvatar,
+    updateUserCoverImage
  }
